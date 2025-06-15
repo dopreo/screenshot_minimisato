@@ -1,0 +1,5 @@
+# requirements.txt
+
+# image processing
+# security patches were added in 9.x; don't 'get ganked'
+Pillow>=10.0.0
