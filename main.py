@@ -9,6 +9,7 @@
 
 import os, shutil
 from PIL import Image
+from pathlib import Path
 
 home_dir = os.path.expanduser("~")
 # home_dir = "/mnt/YOURDRIVE/Users/yourusername"
@@ -24,26 +25,33 @@ class Screenshot:
         self.size = size
 
     def convert_to_webp(self, input_path: str, output_path: str, quality: int=100):
-        if quality >= 100 or quality <= 0: 
-            lossless_mode = True # Lossless mode
-            try:
-                img = Image.open(input_path)
-                img.save(output_path, format="WEBP", lossless=True)
-                print(f"SUCCESS: {output_path} (quality={quality})")
-            except Exception as e:
-                print(f"FAILED: {e}")
+        img = Image.open(input_path)
+        exif_data = img.info.get('exif') # collect any exif metadata
+
+        save_kwargs = {}
+        if quality >= 100 or quality <= 0:
+            save_kwargs['lossless'] = True
         else:
-            lossless_mode = False # Lossy mode
-            try:
-                img = Image.open(input_path)
-                img.save(output_path, format="WEBP", quality=quality)
-                print(f"SUCCESS: {output_path} (quality={quality})")
-            except Exception as e:
-                print(f"FAILED: {e}")
+            save_kwargs['quality'] = quality
+        
+        # tell img.save to re-embed exif metadata
+        if exif_data:
+            save_kwargs['exif'] = exif_data
+
+        try:
+            img.save(output_path, format="WEBP", **save_kwargs)
+            print(f"SUCCESS: {output_path} (quality={quality})")
+        except Exception as e:
+            print(f"FAILED: {e}")
         
     def move_to_old_folder(self, source_path: str):
-        destination_path = screenshots_dir + "/old/" + file_name
-        dest = shutil.move(source_path, destination_path,  copy_function = shutil.copytree)
+        file_name = os.path.basename(source_path)
+        destination_path = os.path.join(screenshots_dir, "old", file_name)
+        try:
+            shutil.move(source_path, destination_path)
+            print(f"MOVED: {source_path} → {destination_path}")
+        except Exception as e:
+            print(f"MOVE FAILED: {e}")
 
 # Add all files in directory that are not directories
 screenshots = [file for file in os.listdir(screenshots_dir) if os.path.isfile(screenshots_dir +"/"+ file) and not file.lower().endswith('.webp')]
